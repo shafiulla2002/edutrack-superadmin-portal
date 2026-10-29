@@ -39,7 +39,16 @@ import {
   Radio,
   ChevronRight,
   UserCheck,
-  X
+  X,
+  Eye,
+  Edit,
+  Trash2,
+  MapPin,
+  Phone,
+  Mail,
+  Building,
+  GraduationCap,
+  User
 } from 'lucide-react';
 import {
   SchoolTenant,
@@ -54,6 +63,9 @@ import {
   rejectSchoolRegistration,
   updateSchoolSubscription,
   extendSchoolValidity,
+  deleteSchoolTenant,
+  updateSchoolDetails,
+  createSchoolTenant,
   sendSchoolCommunication,
   updatePlanSettings,
   createPlatformInvoice,
@@ -82,6 +94,58 @@ export default function SuperAdminPortalPage() {
   const [adjustStatus, setAdjustStatus] = useState<any>('ACTIVE');
   const [adjustStudentCount, setAdjustStudentCount] = useState<number>(500);
   const [modalSubmitting, setModalSubmitting] = useState(false);
+
+  // School Details Modal state
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailedSchool, setDetailedSchool] = useState<SchoolTenant | null>(null);
+
+  // Edit School Modal state
+  const [showEditSchoolModal, setShowEditSchoolModal] = useState(false);
+  const [editSchoolForm, setEditSchoolForm] = useState({
+    id: '',
+    name: '',
+    subDomain: '',
+    contactEmail: '',
+    contactPhone: '',
+    adminName: '',
+    schoolType: '',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    studentCount: 500,
+    staffCount: 30,
+    status: 'ACTIVE' as 'ACTIVE' | 'PENDING_APPROVAL' | 'PAST_DUE' | 'EXPIRED' | 'REJECTED' | 'SUSPENDED',
+    planName: 'BASIC' as 'TRIAL' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE',
+    planPrice: 24999,
+    expiryDate: ''
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  // Delete School Modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingSchool, setDeletingSchool] = useState<SchoolTenant | null>(null);
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+
+  // Create School Modal state
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createSchoolForm, setCreateSchoolForm] = useState({
+    name: '',
+    subDomain: '',
+    contactEmail: '',
+    contactPhone: '',
+    adminName: '',
+    schoolType: 'K-12 Private School',
+    address: '',
+    city: '',
+    state: '',
+    pincode: '',
+    studentCount: 400,
+    staffCount: 25,
+    planName: 'BASIC' as 'TRIAL' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE',
+    status: 'ACTIVE' as 'ACTIVE' | 'PENDING_APPROVAL' | 'PAST_DUE' | 'EXPIRED' | 'REJECTED' | 'SUSPENDED'
+  });
+  const [createSubmitting, setCreateSubmitting] = useState(false);
 
   // Approval review modal
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -284,6 +348,181 @@ export default function SuperAdminPortalPage() {
       showToast(`Extended validity for "${school.name}" by +14 days.`);
     } catch (err: any) {
       showToast(err.message || 'Failed to extend validity', 'error');
+    }
+  };
+
+  const handleOpenDetails = (school: SchoolTenant) => {
+    setDetailedSchool(school);
+    setShowDetailsModal(true);
+  };
+
+  const handleOpenEdit = (school: SchoolTenant) => {
+    setEditSchoolForm({
+      id: school.id,
+      name: school.name,
+      subDomain: school.subDomain,
+      contactEmail: school.contactEmail,
+      contactPhone: school.contactPhone || '',
+      adminName: school.adminName || '',
+      schoolType: school.schoolType || 'General Academy',
+      address: school.address || '',
+      city: school.city || '',
+      state: school.state || '',
+      pincode: school.pincode || '',
+      studentCount: school.studentCount || 0,
+      staffCount: school.staffCount || 0,
+      status: school.status,
+      planName: school.subscription?.plan?.name || 'BASIC',
+      planPrice: school.subscription?.plan?.price || 24999,
+      expiryDate: school.subscription?.expiryDate 
+        ? new Date(school.subscription.expiryDate).toISOString().split('T')[0] 
+        : new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]
+    });
+    setShowEditSchoolModal(true);
+  };
+
+  const handleSaveEditSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editSchoolForm.id) return;
+    setEditSubmitting(true);
+    try {
+      await updateSchoolDetails(editSchoolForm.id, {
+        name: editSchoolForm.name,
+        subDomain: editSchoolForm.subDomain,
+        contactEmail: editSchoolForm.contactEmail,
+        contactPhone: editSchoolForm.contactPhone,
+        adminName: editSchoolForm.adminName,
+        schoolType: editSchoolForm.schoolType,
+        address: editSchoolForm.address,
+        city: editSchoolForm.city,
+        state: editSchoolForm.state,
+        pincode: editSchoolForm.pincode,
+        studentCount: editSchoolForm.studentCount,
+        staffCount: editSchoolForm.staffCount,
+        status: editSchoolForm.status,
+        subscription: {
+          status: editSchoolForm.status === 'PENDING_APPROVAL' ? 'PENDING_APPROVAL' : (editSchoolForm.status === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE'),
+          expiryDate: editSchoolForm.expiryDate ? new Date(editSchoolForm.expiryDate).toISOString() : new Date(Date.now() + 365 * 86400000).toISOString(),
+          billingCycle: editSchoolForm.planName === 'TRIAL' ? '14_DAYS' : 'ANNUAL',
+          plan: {
+            name: editSchoolForm.planName,
+            price: Number(editSchoolForm.planPrice)
+          }
+        }
+      });
+      showToast(`Updated details for "${editSchoolForm.name}" in real-time Firestore.`);
+      setShowEditSchoolModal(false);
+      if (detailedSchool && detailedSchool.id === editSchoolForm.id) {
+        setDetailedSchool((prev) => prev ? {
+          ...prev,
+          name: editSchoolForm.name,
+          subDomain: editSchoolForm.subDomain,
+          contactEmail: editSchoolForm.contactEmail,
+          contactPhone: editSchoolForm.contactPhone,
+          adminName: editSchoolForm.adminName,
+          schoolType: editSchoolForm.schoolType,
+          address: editSchoolForm.address,
+          city: editSchoolForm.city,
+          state: editSchoolForm.state,
+          pincode: editSchoolForm.pincode,
+          studentCount: editSchoolForm.studentCount,
+          staffCount: editSchoolForm.staffCount,
+          status: editSchoolForm.status,
+          subscription: {
+            ...prev.subscription,
+            status: editSchoolForm.status,
+            expiryDate: editSchoolForm.expiryDate ? new Date(editSchoolForm.expiryDate).toISOString() : prev.subscription.expiryDate,
+            billingCycle: editSchoolForm.planName === 'TRIAL' ? '14_DAYS' : (prev.subscription.billingCycle || 'ANNUAL'),
+            plan: {
+              name: editSchoolForm.planName,
+              price: Number(editSchoolForm.planPrice)
+            }
+          }
+        } : null);
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update school in Firebase', 'error');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleOpenDelete = (school: SchoolTenant) => {
+    setDeletingSchool(school);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingSchool) return;
+    setDeleteSubmitting(true);
+    try {
+      await deleteSchoolTenant(deletingSchool.id);
+      showToast(`School tenant "${deletingSchool.name}" permanently deleted from Firestore.`, 'info');
+      setShowDeleteModal(false);
+      setShowDetailsModal(false);
+      setDeletingSchool(null);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete school from Firebase', 'error');
+    } finally {
+      setDeleteSubmitting(false);
+    }
+  };
+
+  const handleCreateSchoolSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!createSchoolForm.name || !createSchoolForm.subDomain || !createSchoolForm.contactEmail) {
+      showToast('School Name, Subdomain, and Contact Email are required', 'error');
+      return;
+    }
+    setCreateSubmitting(true);
+    try {
+      const priceMap: Record<string, number> = { TRIAL: 0, BASIC: 24999, PREMIUM: 49999, ENTERPRISE: 74999 };
+      await createSchoolTenant({
+        name: createSchoolForm.name,
+        subDomain: createSchoolForm.subDomain,
+        contactEmail: createSchoolForm.contactEmail,
+        contactPhone: createSchoolForm.contactPhone,
+        adminName: createSchoolForm.adminName,
+        schoolType: createSchoolForm.schoolType,
+        address: createSchoolForm.address,
+        city: createSchoolForm.city,
+        state: createSchoolForm.state,
+        pincode: createSchoolForm.pincode,
+        studentCount: Number(createSchoolForm.studentCount || 0),
+        staffCount: Number(createSchoolForm.staffCount || 0),
+        status: createSchoolForm.status,
+        subscription: {
+          status: createSchoolForm.status,
+          expiryDate: new Date(Date.now() + (createSchoolForm.planName === 'TRIAL' ? 14 : 365) * 86400000).toISOString(),
+          billingCycle: createSchoolForm.planName === 'TRIAL' ? '14_DAYS' : 'ANNUAL',
+          plan: {
+            name: createSchoolForm.planName,
+            price: priceMap[createSchoolForm.planName] || 24999
+          }
+        }
+      });
+      showToast(`New school tenant "${createSchoolForm.name}" created and synced in Firestore!`);
+      setShowCreateModal(false);
+      setCreateSchoolForm({
+        name: '',
+        subDomain: '',
+        contactEmail: '',
+        contactPhone: '',
+        adminName: '',
+        schoolType: 'K-12 Private School',
+        address: '',
+        city: '',
+        state: '',
+        pincode: '',
+        studentCount: 400,
+        staffCount: 25,
+        planName: 'BASIC',
+        status: 'ACTIVE'
+      });
+    } catch (err: any) {
+      showToast(err.message || 'Failed to create school', 'error');
+    } finally {
+      setCreateSubmitting(false);
     }
   };
 
@@ -696,8 +935,8 @@ export default function SuperAdminPortalPage() {
         {/* TAB 1: SCHOOLS & TENANTS */}
         {activeTab === 'schools' && (
           <div className="space-y-6">
-            {/* Search and Filter Controls */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            {/* Search, Filter, and Action Controls */}
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
               <div className="relative flex-1">
                 <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
@@ -709,9 +948,9 @@ export default function SuperAdminPortalPage() {
                 />
               </div>
 
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-slate-400 shrink-0" />
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-1.5 bg-slate-900/60 p-1 rounded-xl border border-slate-800 text-xs">
+                  <Filter className="w-3.5 h-3.5 text-slate-500 ml-1.5" />
                   {['ALL', 'PENDING_APPROVAL', 'ACTIVE', 'TRIAL', 'EXPIRED'].map((filterKey) => (
                     <button
                       key={filterKey}
@@ -726,6 +965,14 @@ export default function SuperAdminPortalPage() {
                     </button>
                   ))}
                 </div>
+
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add School Tenant</span>
+                </button>
               </div>
             </div>
 
@@ -769,8 +1016,14 @@ export default function SuperAdminPortalPage() {
 
                         return (
                           <tr key={school.id} className="hover:bg-slate-900/40 transition-colors">
-                            <td className="py-3.5 px-4">
-                              <div className="font-bold text-white text-sm">{school.name}</div>
+                            <td 
+                              className="py-3.5 px-4 cursor-pointer group"
+                              onClick={() => handleOpenDetails(school)}
+                            >
+                              <div className="font-bold text-white text-sm group-hover:text-brand-400 flex items-center gap-1.5 transition-colors">
+                                <span>{school.name}</span>
+                                <Eye className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 text-brand-400 transition-opacity" />
+                              </div>
                               <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
                                 <span>{school.contactEmail}</span>
                                 {school.studentCount ? (
@@ -832,7 +1085,7 @@ export default function SuperAdminPortalPage() {
                             </td>
 
                             <td className="py-3.5 px-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center justify-end gap-1.5">
                                 {school.status === 'PENDING_APPROVAL' ? (
                                   <button
                                     onClick={() => openApprovalModal(school)}
@@ -844,17 +1097,39 @@ export default function SuperAdminPortalPage() {
                                 ) : (
                                   <>
                                     <button
+                                      onClick={() => handleOpenDetails(school)}
+                                      title="View comprehensive school tenant details"
+                                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs transition-colors"
+                                    >
+                                      <Eye className="w-3.5 h-3.5 text-sky-400" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenEdit(school)}
+                                      title="Edit school details and subscription"
+                                      className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs transition-colors"
+                                    >
+                                      <Edit className="w-3.5 h-3.5 text-amber-400" />
+                                    </button>
+                                    <button
                                       onClick={() => handleQuickExtend(school)}
                                       title="Add 14 days grace validity to this school"
-                                      className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs transition-colors"
+                                      className="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs transition-colors font-mono"
                                     >
-                                      +14 Days
+                                      +14d
                                     </button>
                                     <button
                                       onClick={() => openAdjustModal(school)}
-                                      className="px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition-colors"
+                                      title="Adjust Plan"
+                                      className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition-colors"
                                     >
-                                      Adjust Plan
+                                      Plan
+                                    </button>
+                                    <button
+                                      onClick={() => handleOpenDelete(school)}
+                                      title="Delete school tenant permanently from Firestore"
+                                      className="p-1.5 rounded-lg bg-rose-950/30 hover:bg-rose-900/50 text-rose-400 border border-rose-500/20 text-xs transition-colors"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
                                     </button>
                                   </>
                                 )}
@@ -1635,6 +1910,727 @@ export default function SuperAdminPortalPage() {
                   className="px-4 py-3 rounded-xl bg-slate-950 text-slate-400 border border-slate-800"
                 >
                   Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: COMPREHENSIVE SCHOOL DETAILS MODAL */}
+      {showDetailsModal && detailedSchool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-6 my-8">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-800 pb-5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-bold text-white tracking-tight">{detailedSchool.name}</h3>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${
+                      detailedSchool.status === 'ACTIVE'
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                        : detailedSchool.status === 'PENDING_APPROVAL'
+                        ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                        : detailedSchool.subscription?.plan?.name === 'TRIAL'
+                        ? 'bg-sky-500/10 text-sky-400 border-sky-500/30'
+                        : detailedSchool.status === 'SUSPENDED'
+                        ? 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+                        : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
+                    {detailedSchool.status}
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                  <span className="font-mono text-indigo-400 bg-indigo-950/40 border border-indigo-500/20 px-2 py-0.5 rounded">
+                    {detailedSchool.subDomain}.edutrack.com
+                  </span>
+                  <span>•</span>
+                  <span className="font-mono text-slate-500">ID: {detailedSchool.id}</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDetailsModal(false)}
+                className="p-2 rounded-xl bg-slate-950 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Quick Metrics Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-2xl">
+                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Enrolled Students</div>
+                <div className="text-xl font-bold text-white mt-1 flex items-baseline gap-1.5">
+                  <Users className="w-4 h-4 text-brand-400" />
+                  <span>{detailedSchool.studentCount?.toLocaleString('en-IN') || 0}</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-2xl">
+                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Faculty & Staff</div>
+                <div className="text-xl font-bold text-white mt-1 flex items-baseline gap-1.5">
+                  <UserCheck className="w-4 h-4 text-emerald-400" />
+                  <span>{detailedSchool.staffCount?.toLocaleString('en-IN') || 0}</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-2xl">
+                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Current Plan</div>
+                <div className="text-base font-bold text-indigo-400 mt-1 truncate">
+                  {detailedSchool.subscription?.plan?.name || 'BASIC'}
+                </div>
+                <div className="text-[10px] text-slate-500 font-mono">
+                  ₹{detailedSchool.subscription?.plan?.price?.toLocaleString('en-IN') || 0}/yr
+                </div>
+              </div>
+
+              <div className="bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-2xl">
+                <div className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Plan Expiry</div>
+                <div className="text-sm font-bold text-slate-200 mt-1 font-mono">
+                  {detailedSchool.subscription?.expiryDate
+                    ? new Date(detailedSchool.subscription.expiryDate).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })
+                    : 'Permanent'}
+                </div>
+                <div className="text-[10px] text-slate-400 mt-0.5">
+                  {detailedSchool.subscription?.expiryDate &&
+                  new Date(detailedSchool.subscription.expiryDate).getTime() < Date.now() ? (
+                    <span className="text-rose-400 font-bold">Past Due / Expired</span>
+                  ) : (
+                    <span className="text-emerald-400">Valid</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              {/* Box 1: Administration & Contact */}
+              <div className="bg-slate-950/40 border border-slate-800/70 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-slate-300 font-bold pb-1 border-b border-slate-800/60">
+                  <Building2 className="w-4 h-4 text-brand-400" />
+                  <span>Administration & Contact</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Principal / Admin:</span>
+                    <span className="text-slate-200 font-medium">{detailedSchool.adminName || 'Not designated'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Contact Email:</span>
+                    <a href={`mailto:${detailedSchool.contactEmail}`} className="text-brand-400 hover:underline">
+                      {detailedSchool.contactEmail}
+                    </a>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Contact Phone:</span>
+                    <span className="text-slate-200 font-mono">{detailedSchool.contactPhone || '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Affiliation / Board:</span>
+                    <span className="text-slate-200 font-medium">{detailedSchool.schoolType || 'General'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box 2: Location & Address */}
+              <div className="bg-slate-950/40 border border-slate-800/70 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-slate-300 font-bold pb-1 border-b border-slate-800/60">
+                  <MapPin className="w-4 h-4 text-emerald-400" />
+                  <span>Campus Location & Address</span>
+                </div>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-slate-500 block mb-0.5">Street Address:</span>
+                    <span className="text-slate-200 font-medium block">
+                      {detailedSchool.address || 'Address not registered'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 pt-1">
+                    <div>
+                      <span className="text-slate-500">City / District:</span>
+                      <p className="text-slate-200 font-medium">{detailedSchool.city || '—'}</p>
+                    </div>
+                    <div>
+                      <span className="text-slate-500">State / Pincode:</span>
+                      <p className="text-slate-200 font-medium">
+                        {detailedSchool.state || '—'} {detailedSchool.pincode ? `(${detailedSchool.pincode})` : ''}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box 3: Subscription & Billing */}
+              <div className="bg-slate-950/40 border border-slate-800/70 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-slate-300 font-bold pb-1 border-b border-slate-800/60">
+                  <CreditCard className="w-4 h-4 text-indigo-400" />
+                  <span>Subscription & Billing</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Subscription Status:</span>
+                    <span className="font-bold text-slate-200">{detailedSchool.subscription?.status || 'ACTIVE'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Billing Interval:</span>
+                    <span className="text-slate-200">{detailedSchool.subscription?.billingCycle || 'ANNUAL'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Annual Tier Price:</span>
+                    <span className="text-emerald-400 font-bold">
+                      ₹{detailedSchool.subscription?.plan?.price?.toLocaleString('en-IN') || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box 4: Registration & Lifecycle */}
+              <div className="bg-slate-950/40 border border-slate-800/70 p-4 rounded-2xl space-y-3">
+                <div className="flex items-center gap-2 text-slate-300 font-bold pb-1 border-b border-slate-800/60">
+                  <Calendar className="w-4 h-4 text-sky-400" />
+                  <span>Registration & Audit</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Registration Source:</span>
+                    <span className="font-mono text-slate-300">{detailedSchool.registrationSource || 'PORTAL'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Registered On:</span>
+                    <span className="text-slate-300 font-mono">
+                      {detailedSchool.createdAt
+                        ? new Date(detailedSchool.createdAt).toLocaleDateString('en-IN')
+                        : '—'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Approved On:</span>
+                    <span className="text-slate-300 font-mono">
+                      {detailedSchool.approvedAt
+                        ? new Date(detailedSchool.approvedAt).toLocaleDateString('en-IN')
+                        : 'Pre-provisioned'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Actions Footer */}
+            <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleOpenEdit(detailedSchool);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  <span>Edit Full Details</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    openAdjustModal(detailedSchool);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Adjust Plan</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickExtend(detailedSchool)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-semibold transition-colors"
+                >
+                  +14 Days
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleOpenDelete(detailedSchool)}
+                  className="px-4 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete School</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDetailsModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-950 text-slate-400 hover:text-white border border-slate-800 text-xs font-semibold"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: EDIT SCHOOL DETAILS MODAL */}
+      {showEditSchoolModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-5 my-8">
+            <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-white">Edit School Tenant</h3>
+                <p className="text-xs text-slate-400">Update school metadata, capacity, and subscription status</p>
+              </div>
+              <button
+                onClick={() => setShowEditSchoolModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditSchool} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">School Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={editSchoolForm.name}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, name: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Subdomain Prefix</label>
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      required
+                      value={editSchoolForm.subDomain}
+                      onChange={(e) => setEditSchoolForm({ ...editSchoolForm, subDomain: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-l-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                    <span className="bg-slate-800 border border-l-0 border-slate-800 px-3 py-2.5 rounded-r-xl text-slate-400 font-mono">
+                      .edutrack.com
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Principal / Admin Name</label>
+                  <input
+                    type="text"
+                    value={editSchoolForm.adminName}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, adminName: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Contact Email</label>
+                  <input
+                    type="email"
+                    required
+                    value={editSchoolForm.contactEmail}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, contactEmail: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Contact Phone</label>
+                  <input
+                    type="text"
+                    value={editSchoolForm.contactPhone}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, contactPhone: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">School Affiliation / Type</label>
+                  <input
+                    type="text"
+                    value={editSchoolForm.schoolType}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, schoolType: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-slate-400 block mb-1 font-semibold">Street Address</label>
+                  <input
+                    type="text"
+                    value={editSchoolForm.address}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, address: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">City</label>
+                  <input
+                    type="text"
+                    value={editSchoolForm.city}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, city: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">State & Pincode</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      placeholder="State"
+                      value={editSchoolForm.state}
+                      onChange={(e) => setEditSchoolForm({ ...editSchoolForm, state: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Pincode"
+                      value={editSchoolForm.pincode}
+                      onChange={(e) => setEditSchoolForm({ ...editSchoolForm, pincode: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Student Headcount</label>
+                  <input
+                    type="number"
+                    value={editSchoolForm.studentCount}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, studentCount: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Staff / Faculty Count</label>
+                  <input
+                    type="number"
+                    value={editSchoolForm.staffCount}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, staffCount: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Subscription Plan</label>
+                  <select
+                    value={editSchoolForm.planName}
+                    onChange={(e) => {
+                      const newPlan = e.target.value as any;
+                      const priceMap: Record<string, number> = { TRIAL: 0, BASIC: 24999, PREMIUM: 49999, ENTERPRISE: 74999 };
+                      setEditSchoolForm({
+                        ...editSchoolForm,
+                        planName: newPlan,
+                        planPrice: priceMap[newPlan] ?? editSchoolForm.planPrice
+                      });
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="TRIAL">TRIAL (14 Days Evaluation)</option>
+                    <option value="BASIC">BASIC (Standard Academic)</option>
+                    <option value="PREMIUM">PREMIUM (Full Featured)</option>
+                    <option value="ENTERPRISE">ENTERPRISE (All Modules)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Plan Fee (INR / yr)</label>
+                  <input
+                    type="number"
+                    value={editSchoolForm.planPrice}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, planPrice: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Account Status</label>
+                  <select
+                    value={editSchoolForm.status}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, status: e.target.value as any })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="ACTIVE">ACTIVE (Full Access)</option>
+                    <option value="PENDING_APPROVAL">PENDING_APPROVAL (Under Review)</option>
+                    <option value="PAST_DUE">PAST_DUE (Grace Warning Banner)</option>
+                    <option value="EXPIRED">EXPIRED (Lockout Screen)</option>
+                    <option value="SUSPENDED">SUSPENDED (Disabled by Super Admin)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Expiration Date</label>
+                  <input
+                    type="date"
+                    value={editSchoolForm.expiryDate}
+                    onChange={(e) => setEditSchoolForm({ ...editSchoolForm, expiryDate: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditSchoolModal(false)}
+                  className="px-5 py-2.5 rounded-xl bg-slate-950 text-slate-400 border border-slate-800 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-semibold shadow-lg shadow-brand-500/20 transition-all flex items-center gap-2"
+                >
+                  {editSubmitting ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      <span>Save Changes to Firebase</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: DELETE SCHOOL CONFIRMATION */}
+      {showDeleteModal && deletingSchool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-slate-900 border border-rose-500/30 rounded-3xl p-6 shadow-2xl space-y-5 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto shadow-lg shadow-rose-500/10">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-bold text-white">Permanently Delete School Tenant?</h3>
+              <p className="text-xs text-slate-400">
+                You are about to delete <strong className="text-white">{deletingSchool.name}</strong> (<span className="font-mono text-indigo-400">{deletingSchool.subDomain}.edutrack.com</span>).
+              </p>
+              <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-500/20 text-[11px] text-rose-300 text-left mt-3">
+                ⚠️ Warning: This will permanently purge this school tenant from the live Firebase Firestore database. This action cannot be reversed.
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-950 text-slate-400 border border-slate-800 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleteSubmitting}
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold shadow-lg shadow-rose-500/20 transition-all flex items-center justify-center gap-2"
+              >
+                {deleteSubmitting ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    <span>Yes, Delete</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: ADD NEW SCHOOL TENANT */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-2xl space-y-5 my-8">
+            <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-xl font-bold text-white">Add New School Tenant</h3>
+                <p className="text-xs text-slate-400">Directly provision a new school institution into Firebase Firestore</p>
+              </div>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSchoolSubmit} className="space-y-4 text-xs">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">School Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Oxford Cambridge International"
+                    value={createSchoolForm.name}
+                    onChange={(e) => {
+                      const name = e.target.value;
+                      const autoSub = name.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 20);
+                      setCreateSchoolForm({ ...createSchoolForm, name, subDomain: createSchoolForm.subDomain || autoSub });
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Custom Subdomain *</label>
+                  <div className="flex items-center">
+                    <input
+                      type="text"
+                      required
+                      placeholder="oxford-intl"
+                      value={createSchoolForm.subDomain}
+                      onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, subDomain: e.target.value })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-l-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                    <span className="bg-slate-800 border border-l-0 border-slate-800 px-3 py-2.5 rounded-r-xl text-slate-400 font-mono">
+                      .edutrack.com
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Principal / Admin Name</label>
+                  <input
+                    type="text"
+                    placeholder="Dr. Rajesh Varma"
+                    value={createSchoolForm.adminName}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, adminName: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Contact Email *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="admin@oxfordinternational.edu"
+                    value={createSchoolForm.contactEmail}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, contactEmail: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Contact Phone</label>
+                  <input
+                    type="text"
+                    placeholder="+91 98765 12345"
+                    value={createSchoolForm.contactPhone}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, contactPhone: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">School Affiliation / Board</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. CBSE Senior Secondary"
+                    value={createSchoolForm.schoolType}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, schoolType: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-slate-400 block mb-1 font-semibold">Campus Address</label>
+                  <input
+                    type="text"
+                    placeholder="Sector 62, Electronic City"
+                    value={createSchoolForm.address}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, address: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">City</label>
+                  <input
+                    type="text"
+                    placeholder="Bangalore"
+                    value={createSchoolForm.city}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, city: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">State</label>
+                  <input
+                    type="text"
+                    placeholder="Karnataka"
+                    value={createSchoolForm.state}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, state: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Initial Student Capacity</label>
+                  <input
+                    type="number"
+                    value={createSchoolForm.studentCount}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, studentCount: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-slate-400 block mb-1 font-semibold">Subscription Plan</label>
+                  <select
+                    value={createSchoolForm.planName}
+                    onChange={(e) => setCreateSchoolForm({ ...createSchoolForm, planName: e.target.value as any })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-slate-200 focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="TRIAL">TRIAL (14 Days Evaluation)</option>
+                    <option value="BASIC">BASIC (Standard Academic)</option>
+                    <option value="PREMIUM">PREMIUM (Full Featured)</option>
+                    <option value="ENTERPRISE">ENTERPRISE (All Modules)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-5 py-2.5 rounded-xl bg-slate-950 text-slate-400 border border-slate-800 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createSubmitting}
+                  className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+                >
+                  {createSubmitting ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Provision in Firestore</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>

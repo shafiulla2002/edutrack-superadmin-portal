@@ -18,7 +18,11 @@ export interface SchoolTenant {
   contactPhone?: string;
   adminName?: string;
   studentCount?: number;
+  staffCount?: number;
   address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
   schoolType?: string;
   status: 'PENDING_APPROVAL' | 'ACTIVE' | 'PAST_DUE' | 'EXPIRED' | 'REJECTED' | 'SUSPENDED';
   registrationSource?: 'PORTAL' | 'MANUAL' | 'INVITE';
@@ -26,7 +30,7 @@ export interface SchoolTenant {
   approvedAt?: string;
   rejectionReason?: string;
   subscription: {
-    status: 'ACTIVE' | 'PAST_DUE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_APPROVAL';
+    status: 'ACTIVE' | 'PAST_DUE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_APPROVAL' | 'SUSPENDED' | 'REJECTED';
     expiryDate: string;
     billingCycle?: string;
     plan: {
@@ -470,10 +474,14 @@ export function subscribeToSchools(
           name: data.name || data.schoolName || 'Unnamed Institution',
           subDomain: data.subDomain || data.subdomain || docSnap.id,
           contactEmail: data.contactEmail || data.email || 'admin@school.edu',
-          contactPhone: data.contactPhone || data.mobileNumber || '',
-          adminName: data.adminName || 'Principal',
+          contactPhone: data.contactPhone || data.mobileNumber || data.phone || '',
+          adminName: data.adminName || data.principalName || 'Principal',
           studentCount: Number(data.studentCount || 0),
+          staffCount: Number(data.staffCount || data.teacherCount || 0),
           address: data.address || '',
+          city: data.city || '',
+          state: data.state || '',
+          pincode: data.pincode || '',
           schoolType: data.schoolType || 'General Academy',
           status: data.status || 'ACTIVE',
           registrationSource: data.registrationSource || 'PORTAL',
@@ -625,6 +633,98 @@ export async function extendSchoolValidity(
     'subscription.status': 'ACTIVE',
     'subscription.expiryDate': newExpiry
   });
+}
+
+export async function deleteSchoolTenant(schoolId: string): Promise<void> {
+  const schoolRef = doc(db, 'schools', schoolId);
+  await deleteDoc(schoolRef);
+}
+
+export async function updateSchoolDetails(
+  schoolId: string,
+  updates: Partial<SchoolTenant>
+): Promise<void> {
+  const schoolRef = doc(db, 'schools', schoolId);
+  const payload: any = {
+    updatedAt: new Date().toISOString()
+  };
+
+  if (updates.name !== undefined) payload.name = updates.name;
+  if (updates.subDomain !== undefined) payload.subDomain = updates.subDomain.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  if (updates.contactEmail !== undefined) payload.contactEmail = updates.contactEmail;
+  if (updates.contactPhone !== undefined) payload.contactPhone = updates.contactPhone;
+  if (updates.adminName !== undefined) payload.adminName = updates.adminName;
+  if (updates.studentCount !== undefined) payload.studentCount = Number(updates.studentCount);
+  if (updates.staffCount !== undefined) payload.staffCount = Number(updates.staffCount);
+  if (updates.address !== undefined) payload.address = updates.address;
+  if (updates.city !== undefined) payload.city = updates.city;
+  if (updates.state !== undefined) payload.state = updates.state;
+  if (updates.pincode !== undefined) payload.pincode = updates.pincode;
+  if (updates.schoolType !== undefined) payload.schoolType = updates.schoolType;
+  if (updates.status !== undefined) payload.status = updates.status;
+
+  if (updates.subscription) {
+    payload.subscription = {
+      status: updates.subscription.status || updates.status || 'ACTIVE',
+      expiryDate: updates.subscription.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString(),
+      billingCycle: updates.subscription.billingCycle || 'ANNUAL',
+      plan: {
+        name: updates.subscription.plan?.name || 'BASIC',
+        price: Number(updates.subscription.plan?.price || 24999)
+      }
+    };
+  }
+
+  await updateDoc(schoolRef, payload);
+}
+
+export async function createSchoolTenant(
+  newSchool: Partial<SchoolTenant> & { name: string; subDomain: string; contactEmail: string }
+): Promise<string> {
+  const cleanSubdomain = newSchool.subDomain.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const schoolId = newSchool.id || ('sch-' + cleanSubdomain + '-' + Math.floor(100 + Math.random() * 900));
+  
+  const priceMap: Record<string, number> = {
+    TRIAL: 0,
+    BASIC: 24999,
+    PREMIUM: 49999,
+    ENTERPRISE: 74999
+  };
+  const planName = newSchool.subscription?.plan?.name || 'BASIC';
+  const planPrice = newSchool.subscription?.plan?.price !== undefined 
+    ? Number(newSchool.subscription.plan.price) 
+    : (priceMap[planName] || 24999);
+
+  const schoolDoc: SchoolTenant = {
+    id: schoolId,
+    name: newSchool.name,
+    subDomain: cleanSubdomain,
+    contactEmail: newSchool.contactEmail,
+    contactPhone: newSchool.contactPhone || '',
+    adminName: newSchool.adminName || 'Principal',
+    studentCount: Number(newSchool.studentCount || 0),
+    staffCount: Number(newSchool.staffCount || 0),
+    address: newSchool.address || '',
+    city: newSchool.city || '',
+    state: newSchool.state || '',
+    pincode: newSchool.pincode || '',
+    schoolType: newSchool.schoolType || 'General Academy',
+    status: newSchool.status || 'ACTIVE',
+    registrationSource: newSchool.registrationSource || 'MANUAL',
+    createdAt: new Date().toISOString(),
+    subscription: {
+      status: newSchool.subscription?.status || newSchool.status || 'ACTIVE',
+      expiryDate: newSchool.subscription?.expiryDate || new Date(Date.now() + (planName === 'TRIAL' ? 14 : 365) * 86400000).toISOString(),
+      billingCycle: newSchool.subscription?.billingCycle || (planName === 'TRIAL' ? '14_DAYS' : 'ANNUAL'),
+      plan: {
+        name: planName,
+        price: planPrice
+      }
+    }
+  };
+
+  await setDoc(doc(db, 'schools', schoolId), schoolDoc);
+  return schoolId;
 }
 
 export function subscribeToPlans(

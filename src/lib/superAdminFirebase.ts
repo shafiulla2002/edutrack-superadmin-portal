@@ -17,12 +17,15 @@ export interface SchoolTenant {
   contactEmail: string;
   contactPhone?: string;
   adminName?: string;
+  principalName?: string;
   studentCount?: number;
   staffCount?: number;
   address?: string;
   city?: string;
   state?: string;
   pincode?: string;
+  district?: string;
+  country?: string;
   schoolType?: string;
   status: 'PENDING_APPROVAL' | 'ACTIVE' | 'PAST_DUE' | 'EXPIRED' | 'REJECTED' | 'SUSPENDED';
   registrationSource?: 'PORTAL' | 'MANUAL' | 'INVITE';
@@ -75,199 +78,8 @@ export interface PlatformInvoice {
   notes?: string;
 }
 
-// Initial benchmark dataset used to seed Firestore if empty
-export const INITIAL_FIRESTORE_SCHOOLS: SchoolTenant[] = [
-  {
-    id: 'sch-reg-pending-001',
-    name: 'National Public Academy',
-    subDomain: 'national-public',
-    contactEmail: 'admissions@nationalpublic.org',
-    contactPhone: '+91 98765 43210',
-    adminName: 'Dr. Ramesh Kumar',
-    studentCount: 750,
-    address: 'Sector 14, Gurgaon, Haryana',
-    schoolType: 'K-12 CBSE Affiliated',
-    status: 'PENDING_APPROVAL',
-    registrationSource: 'PORTAL',
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    subscription: {
-      status: 'PENDING_APPROVAL',
-      expiryDate: new Date(Date.now() + 14 * 86400000).toISOString(),
-      billingCycle: '14_DAYS',
-      plan: {
-        name: 'TRIAL',
-        price: 0
-      }
-    }
-  },
-  {
-    id: 'sch-reg-pending-002',
-    name: 'Apex Global High School',
-    subDomain: 'apex-global',
-    contactEmail: 'principal@apexhigh.edu',
-    contactPhone: '+91 98111 22334',
-    adminName: 'Smt. Anjali Sharma',
-    studentCount: 1120,
-    address: 'Whitefield Main Road, Bangalore, Karnataka',
-    schoolType: 'ICSE International School',
-    status: 'PENDING_APPROVAL',
-    registrationSource: 'PORTAL',
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    subscription: {
-      status: 'PENDING_APPROVAL',
-      expiryDate: new Date(Date.now() + 365 * 86400000).toISOString(),
-      billingCycle: 'ANNUAL',
-      plan: {
-        name: 'PREMIUM',
-        price: 49999
-      }
-    }
-  },
-  {
-    id: 'sch-vikas-001',
-    name: 'Vikas International Academy',
-    subDomain: 'vikas-intl',
-    contactEmail: 'admin@vikasintl.edu',
-    contactPhone: '+91 98450 11223',
-    adminName: 'Prof. S. N. Vikas',
-    studentCount: 1420,
-    address: 'Ring Road, Jayanagar, Bangalore',
-    schoolType: 'K-12 Private Academy',
-    status: 'ACTIVE',
-    registrationSource: 'PORTAL',
-    createdAt: '2026-05-10T10:00:00Z',
-    approvedAt: '2026-05-11T14:30:00Z',
-    subscription: {
-      status: 'ACTIVE',
-      expiryDate: '2027-04-30T00:00:00.000Z',
-      billingCycle: 'ANNUAL',
-      plan: {
-        name: 'PREMIUM',
-        price: 49999
-      }
-    }
-  },
-  {
-    id: 'sch-dhp-002',
-    name: 'Delhi Heritage Public School',
-    subDomain: 'delhi-heritage',
-    contactEmail: 'principal@delhiheritage.ac.in',
-    contactPhone: '+91 99100 88776',
-    adminName: 'Mrs. Sunita Rao',
-    studentCount: 860,
-    address: 'Rohini Sector 9, New Delhi',
-    schoolType: 'CBSE Senior Secondary',
-    status: 'ACTIVE',
-    registrationSource: 'PORTAL',
-    createdAt: '2026-06-01T09:00:00Z',
-    approvedAt: '2026-06-02T11:00:00Z',
-    subscription: {
-      status: 'ACTIVE',
-      expiryDate: '2026-12-15T00:00:00.000Z',
-      billingCycle: 'ANNUAL',
-      plan: {
-        name: 'BASIC',
-        price: 24999
-      }
-    }
-  },
-  {
-    id: 'sch-sxg-003',
-    name: 'St. Xavier Global High School',
-    subDomain: 'stxavier-global',
-    contactEmail: 'management@stxavierglobal.org',
-    contactPhone: '+91 97234 55667',
-    adminName: 'Father Thomas Pereira',
-    studentCount: 2200,
-    address: 'Bandra West, Mumbai, Maharashtra',
-    schoolType: 'Christian Minority ICSE School',
-    status: 'ACTIVE',
-    registrationSource: 'PORTAL',
-    createdAt: '2026-04-15T08:00:00Z',
-    approvedAt: '2026-04-16T10:00:00Z',
-    subscription: {
-      status: 'ACTIVE',
-      expiryDate: '2027-08-31T00:00:00.000Z',
-      billingCycle: 'ANNUAL',
-      plan: {
-        name: 'ENTERPRISE',
-        price: 74999
-      }
-    }
-  },
-  {
-    id: 'sch-sun-004',
-    name: 'Sunrise Model Academy',
-    subDomain: 'sunrisemodel',
-    contactEmail: 'info@sunrisemodel.edu',
-    contactPhone: '+91 98877 66554',
-    adminName: 'Mr. Arvind Saxena',
-    studentCount: 340,
-    address: 'Malviya Nagar, Jaipur, Rajasthan',
-    schoolType: 'State Board Elementary',
-    status: 'ACTIVE',
-    registrationSource: 'PORTAL',
-    createdAt: '2026-10-15T12:00:00Z',
-    approvedAt: '2026-10-16T15:00:00Z',
-    subscription: {
-      status: 'ACTIVE',
-      expiryDate: '2026-11-20T00:00:00.000Z',
-      billingCycle: '14_DAYS',
-      plan: {
-        name: 'TRIAL',
-        price: 0
-      }
-    }
-  },
-  {
-    id: 'sch-oak-005',
-    name: 'Oakridge Valley School',
-    subDomain: 'oakridge-valley',
-    contactEmail: 'accounts@oakridgevalley.edu',
-    contactPhone: '+91 99001 22334',
-    adminName: 'Col. Rajesh Bakshi',
-    studentCount: 1100,
-    address: 'Gachibowli, Hyderabad, Telangana',
-    schoolType: 'International Baccalaureate (IB)',
-    status: 'PAST_DUE',
-    registrationSource: 'PORTAL',
-    createdAt: '2025-10-20T10:00:00Z',
-    approvedAt: '2025-10-21T11:00:00Z',
-    subscription: {
-      status: 'PAST_DUE',
-      expiryDate: '2026-10-20T00:00:00.000Z',
-      billingCycle: 'ANNUAL',
-      plan: {
-        name: 'PREMIUM',
-        price: 49999
-      }
-    }
-  },
-  {
-    id: 'sch-bvs-006',
-    name: 'Bharatiya Vidya Niketan',
-    subDomain: 'bvn-school',
-    contactEmail: 'bvn.school@gmail.com',
-    contactPhone: '+91 94433 22110',
-    adminName: 'Acharya Vidyadhar',
-    studentCount: 520,
-    address: 'Shivaji Nagar, Pune, Maharashtra',
-    schoolType: 'State Board Secondary',
-    status: 'EXPIRED',
-    registrationSource: 'PORTAL',
-    createdAt: '2025-09-01T09:00:00Z',
-    approvedAt: '2025-09-02T10:00:00Z',
-    subscription: {
-      status: 'EXPIRED',
-      expiryDate: '2026-09-30T00:00:00.000Z',
-      billingCycle: 'ANNUAL',
-      plan: {
-        name: 'BASIC',
-        price: 24999
-      }
-    }
-  }
-];
+// Strictly 0 mock schools - real schools fetched live from Firestore & database
+export const INITIAL_FIRESTORE_SCHOOLS: SchoolTenant[] = [];
 
 export const INITIAL_FIRESTORE_PLANS: PlanTier[] = [
   {
@@ -379,48 +191,13 @@ export const INITIAL_FIRESTORE_INVOICES: PlatformInvoice[] = [
     dueDate: '2026-10-28',
     createdAt: '2026-10-22T14:15:00Z',
     gateway: 'RAZORPAY'
-  },
-  {
-    id: 'inv-103',
-    invoiceNumber: 'INV-2026-0083',
-    schoolId: 'sch-sxg-003',
-    schoolName: 'St. Xavier Global High School',
-    plan: 'ENTERPRISE',
-    amount: 74999,
-    status: 'PAID',
-    dueDate: '2026-10-25',
-    createdAt: '2026-10-19T09:45:00Z',
-    gateway: 'STRIPE'
-  },
-  {
-    id: 'inv-104',
-    invoiceNumber: 'INV-2026-0084',
-    schoolId: 'sch-oak-005',
-    schoolName: 'Oakridge Valley School',
-    plan: 'PREMIUM',
-    amount: 49999,
-    status: 'OVERDUE',
-    dueDate: '2026-10-20',
-    createdAt: '2026-10-10T16:20:00Z',
-    gateway: 'RAZORPAY'
   }
 ];
 
 export async function seedInitialSuperAdminData(): Promise<void> {
   try {
-    const schoolsSnap = await getDocs(collection(db, 'schools'));
-    if (schoolsSnap.empty) {
-      console.log('[Firebase SuperAdmin] Seeding initial schools collection...');
-      const batch = writeBatch(db);
-      for (const s of INITIAL_FIRESTORE_SCHOOLS) {
-        batch.set(doc(db, 'schools', s.id), s);
-      }
-      await batch.commit();
-    }
-
     const plansSnap = await getDocs(collection(db, 'plans'));
     if (plansSnap.empty) {
-      console.log('[Firebase SuperAdmin] Seeding initial plans collection...');
       const batch = writeBatch(db);
       for (const p of INITIAL_FIRESTORE_PLANS) {
         batch.set(doc(db, 'plans', p.id), p);
@@ -430,7 +207,6 @@ export async function seedInitialSuperAdminData(): Promise<void> {
 
     const commsSnap = await getDocs(collection(db, 'communications'));
     if (commsSnap.empty) {
-      console.log('[Firebase SuperAdmin] Seeding initial communications collection...');
       const batch = writeBatch(db);
       for (const c of INITIAL_FIRESTORE_COMMS) {
         batch.set(doc(db, 'communications', c.id), c);
@@ -440,7 +216,6 @@ export async function seedInitialSuperAdminData(): Promise<void> {
 
     const invSnap = await getDocs(collection(db, 'invoices'));
     if (invSnap.empty) {
-      console.log('[Firebase SuperAdmin] Seeding initial invoices collection...');
       const batch = writeBatch(db);
       for (const inv of INITIAL_FIRESTORE_INVOICES) {
         batch.set(doc(db, 'invoices', inv.id), inv);
@@ -452,68 +227,49 @@ export async function seedInitialSuperAdminData(): Promise<void> {
   }
 }
 
+let globalSchoolsCache: SchoolTenant[] = [];
+
 export function subscribeToSchools(
   onData: (schools: SchoolTenant[]) => void,
   onError?: (err: Error) => void
 ): () => void {
-  const q = collection(db, 'schools');
-  return onSnapshot(
-    q,
-    (snapshot) => {
-      if (snapshot.empty) {
-        seedInitialSuperAdminData().catch(() => {});
-        onData(INITIAL_FIRESTORE_SCHOOLS);
-        return;
+  let isMounted = true;
+
+  const fetchFromApi = async () => {
+    try {
+      const res = await fetch('/api/schools', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.schools)) {
+        globalSchoolsCache = data.schools;
+        if (isMounted) onData(data.schools);
       }
-
-      const list: SchoolTenant[] = [];
-      snapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        list.push({
-          id: docSnap.id,
-          name: data.name || data.schoolName || 'Unnamed Institution',
-          subDomain: data.subDomain || data.subdomain || docSnap.id,
-          contactEmail: data.contactEmail || data.email || 'admin@school.edu',
-          contactPhone: data.contactPhone || data.mobileNumber || data.phone || '',
-          adminName: data.adminName || data.principalName || 'Principal',
-          studentCount: Number(data.studentCount || 0),
-          staffCount: Number(data.staffCount || data.teacherCount || 0),
-          address: data.address || '',
-          city: data.city || '',
-          state: data.state || '',
-          pincode: data.pincode || '',
-          schoolType: data.schoolType || 'General Academy',
-          status: data.status || 'ACTIVE',
-          registrationSource: data.registrationSource || 'PORTAL',
-          createdAt: data.createdAt ? (typeof data.createdAt === 'string' ? data.createdAt : new Date(data.createdAt.seconds * 1000).toISOString()) : new Date().toISOString(),
-          approvedAt: data.approvedAt ? (typeof data.approvedAt === 'string' ? data.approvedAt : new Date(data.approvedAt.seconds * 1000).toISOString()) : undefined,
-          rejectionReason: data.rejectionReason,
-          subscription: {
-            status: data.subscription?.status || (data.status === 'PENDING_APPROVAL' ? 'PENDING_APPROVAL' : 'ACTIVE'),
-            expiryDate: data.subscription?.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString(),
-            billingCycle: data.subscription?.billingCycle || 'ANNUAL',
-            plan: {
-              name: data.subscription?.plan?.name || 'BASIC',
-              price: Number(data.subscription?.plan?.price || 24999)
-            }
-          }
-        });
-      });
-
-      list.sort((a, b) => {
-        if (a.status === 'PENDING_APPROVAL' && b.status !== 'PENDING_APPROVAL') return -1;
-        if (b.status === 'PENDING_APPROVAL' && a.status !== 'PENDING_APPROVAL') return 1;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      });
-
-      onData(list);
-    },
-    (err) => {
-      console.warn('[Firebase SuperAdmin] Schools subscription error, using cached fallback:', err);
+    } catch (err: any) {
       if (onError) onError(err);
-      onData(INITIAL_FIRESTORE_SCHOOLS);
+      if (globalSchoolsCache.length > 0 && isMounted) {
+        onData(globalSchoolsCache);
+      }
     }
-  );
+  };
+
+  fetchFromApi();
+
+  // Poll every 3 seconds for continuous real-time sync across all clients
+  const interval = setInterval(fetchFromApi, 3000);
+
+  const handleLocalUpdate = () => {
+    fetchFromApi();
+  };
+  if (typeof window !== 'undefined') {
+    window.addEventListener('edutrack-school-updated', handleLocalUpdate);
+  }
+
+  return () => {
+    isMounted = false;
+    clearInterval(interval);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('edutrack-school-updated', handleLocalUpdate);
+    }
+  };
 }
 
 export async function approveSchoolRegistration(
@@ -521,7 +277,6 @@ export async function approveSchoolRegistration(
   planName: 'TRIAL' | 'BASIC' | 'PREMIUM' | 'ENTERPRISE' = 'BASIC',
   durationMonths: number = 12
 ): Promise<void> {
-  const schoolRef = doc(db, 'schools', schoolId);
   const now = new Date();
   const expiry = new Date(now.getTime() + (planName === 'TRIAL' ? 14 : durationMonths * 30) * 86400000);
 
@@ -532,7 +287,8 @@ export async function approveSchoolRegistration(
     ENTERPRISE: 74999
   };
 
-  await updateDoc(schoolRef, {
+  const payload = {
+    id: schoolId,
     status: 'ACTIVE',
     approvedAt: now.toISOString(),
     approvedBy: 'Super Admin',
@@ -545,7 +301,17 @@ export async function approveSchoolRegistration(
         price: priceMap[planName] || 0
       }
     }
+  };
+
+  await fetch('/api/schools', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('edutrack-school-updated'));
+  }
 
   try {
     await sendSchoolCommunication({
@@ -564,8 +330,8 @@ export async function rejectSchoolRegistration(
   schoolId: string,
   reason: string
 ): Promise<void> {
-  const schoolRef = doc(db, 'schools', schoolId);
-  await updateDoc(schoolRef, {
+  const payload = {
+    id: schoolId,
     status: 'REJECTED',
     rejectionReason: reason || 'Application details could not be verified by compliance.',
     rejectedAt: new Date().toISOString(),
@@ -577,7 +343,17 @@ export async function rejectSchoolRegistration(
         price: 0
       }
     }
+  };
+
+  await fetch('/api/schools', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('edutrack-school-updated'));
+  }
 }
 
 export async function updateSchoolSubscription(
@@ -589,8 +365,16 @@ export async function updateSchoolSubscription(
     studentCount?: number;
   }
 ): Promise<void> {
-  const schoolRef = doc(db, 'schools', schoolId);
-  const payload: any = {};
+  const priceMap: Record<string, number> = {
+    TRIAL: 0,
+    BASIC: 24999,
+    PREMIUM: 49999,
+    ENTERPRISE: 74999
+  };
+
+  const payload: any = {
+    id: schoolId
+  };
 
   if (updates.status) {
     payload.status = updates.status;
@@ -598,13 +382,6 @@ export async function updateSchoolSubscription(
   if (updates.studentCount !== undefined) {
     payload.studentCount = updates.studentCount;
   }
-
-  const priceMap: Record<string, number> = {
-    TRIAL: 0,
-    BASIC: 24999,
-    PREMIUM: 49999,
-    ENTERPRISE: 74999
-  };
 
   if (updates.planName || updates.expiryDate || updates.status) {
     payload.subscription = {
@@ -618,64 +395,75 @@ export async function updateSchoolSubscription(
     };
   }
 
-  await updateDoc(schoolRef, payload);
+  await fetch('/api/schools', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('edutrack-school-updated'));
+  }
 }
 
 export async function extendSchoolValidity(
   schoolId: string,
   additionalDays: number = 14
 ): Promise<void> {
-  const schoolRef = doc(db, 'schools', schoolId);
   const newExpiry = new Date(Date.now() + additionalDays * 86400000).toISOString();
-
-  await updateDoc(schoolRef, {
+  const payload = {
+    id: schoolId,
     status: 'ACTIVE',
-    'subscription.status': 'ACTIVE',
-    'subscription.expiryDate': newExpiry
+    subscription: {
+      status: 'ACTIVE',
+      expiryDate: newExpiry
+    }
+  };
+
+  await fetch('/api/schools', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
   });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('edutrack-school-updated'));
+  }
 }
 
 export async function deleteSchoolTenant(schoolId: string): Promise<void> {
-  const schoolRef = doc(db, 'schools', schoolId);
-  await deleteDoc(schoolRef);
+  await fetch(`/api/schools?id=${encodeURIComponent(schoolId)}`, {
+    method: 'DELETE'
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('edutrack-school-updated'));
+  }
 }
 
 export async function updateSchoolDetails(
   schoolId: string,
   updates: Partial<SchoolTenant>
 ): Promise<void> {
-  const schoolRef = doc(db, 'schools', schoolId);
   const payload: any = {
+    id: schoolId,
+    ...updates,
     updatedAt: new Date().toISOString()
   };
 
-  if (updates.name !== undefined) payload.name = updates.name;
-  if (updates.subDomain !== undefined) payload.subDomain = updates.subDomain.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  if (updates.contactEmail !== undefined) payload.contactEmail = updates.contactEmail;
-  if (updates.contactPhone !== undefined) payload.contactPhone = updates.contactPhone;
-  if (updates.adminName !== undefined) payload.adminName = updates.adminName;
-  if (updates.studentCount !== undefined) payload.studentCount = Number(updates.studentCount);
-  if (updates.staffCount !== undefined) payload.staffCount = Number(updates.staffCount);
-  if (updates.address !== undefined) payload.address = updates.address;
-  if (updates.city !== undefined) payload.city = updates.city;
-  if (updates.state !== undefined) payload.state = updates.state;
-  if (updates.pincode !== undefined) payload.pincode = updates.pincode;
-  if (updates.schoolType !== undefined) payload.schoolType = updates.schoolType;
-  if (updates.status !== undefined) payload.status = updates.status;
-
-  if (updates.subscription) {
-    payload.subscription = {
-      status: updates.subscription.status || updates.status || 'ACTIVE',
-      expiryDate: updates.subscription.expiryDate || new Date(Date.now() + 365 * 86400000).toISOString(),
-      billingCycle: updates.subscription.billingCycle || 'ANNUAL',
-      plan: {
-        name: updates.subscription.plan?.name || 'BASIC',
-        price: Number(updates.subscription.plan?.price || 24999)
-      }
-    };
+  if (updates.subDomain) {
+    payload.subDomain = updates.subDomain.toLowerCase().replace(/[^a-z0-9]/g, '-');
   }
 
-  await updateDoc(schoolRef, payload);
+  await fetch('/api/schools', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('edutrack-school-updated'));
+  }
 }
 
 export async function createSchoolTenant(
@@ -723,7 +511,16 @@ export async function createSchoolTenant(
     }
   };
 
-  await setDoc(doc(db, 'schools', schoolId), schoolDoc);
+  await fetch('/api/schools', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(schoolDoc)
+  });
+
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('edutrack-school-updated'));
+  }
+
   return schoolId;
 }
 
